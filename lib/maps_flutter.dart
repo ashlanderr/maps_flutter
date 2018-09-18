@@ -1,89 +1,15 @@
 library maps_flutter;
 
-import 'dart:async';
-import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart' hide Image;
-import 'package:http/http.dart' as http;
+import 'package:maps_flutter/overlay.dart';
+import 'package:maps_flutter/tiles.dart';
+import 'package:maps_flutter/util.dart';
 
-const TILE_SIZE = 256.0;
-
-double _tile2lng(x) {
-  return (x * 360 - 180);
-}
-
-double _tile2lat(y) {
-  final n = pi - 2 * pi * y;
-  return (180 / pi * atan(0.5 * (exp(n) - exp(-n))));
-}
-
-double _lng2tile(lng) {
-  return (lng + 180) / 360;
-}
-
-double _lat2tile(lat) {
-  final r = lat / 180 * pi;
-  return (1 - (log(tan(r) + (1 / cos(r))) / pi)) / 2;
-}
-
-Offset _geo2screen(GeoPoint point, double offsetX, double offsetY, double zoom, Size size) {
-  final y = _lat2tile(point.latitude);
-  final x = _lng2tile(point.longitude);
-
-  final cx = size.width / 2.0 - ((offsetX - x) * zoom * TILE_SIZE);
-  final cy = size.height / 2.0 - ((offsetY - y) * zoom * TILE_SIZE);
-
-  return Offset(cx, cy);
-}
-
-class GeoPoint {
-  final double latitude;
-  final double longitude;
-
-  GeoPoint(this.latitude, this.longitude);
-}
-
-class MapMarker {
-  final GeoPoint location;
-  final Color color;
-
-  MapMarker({this.location, this.color});
-}
-
-class MapPolyline {
-  final List<GeoPoint> points;
-
-  MapPolyline({this.points});
-}
-
-class MapOverlay {
-  final List<MapMarker> markers;
-  final List<MapPolyline> polylines;
-
-  MapOverlay({
-    List<MapMarker> markers,
-    List<MapPolyline> polylines,
-  })
-    : markers = markers ?? [],
-      polylines = polylines ?? [];
-}
-
-abstract class TileProvider {
-  Future<Image> fetch(int level, int x, int y);
-}
-
-class OpenStreetMap implements TileProvider {
-  @override
-  Future<Image> fetch(int level, int x, int y) async {
-    final url = "https://a.tile.openstreetmap.org/$level/$x/$y.png";
-    final response = await http.get(url);
-    final bytes = response.bodyBytes;
-    final codec = await instantiateImageCodec(bytes);
-    final frame = await codec.getNextFrame();
-    return frame.image;
-  }
-}
+export 'package:maps_flutter/overlay.dart';
+export 'package:maps_flutter/tiles.dart';
+export 'package:maps_flutter/util.dart';
 
 class MapsWidget extends StatefulWidget {
   final List<MapOverlay> overlays;
@@ -148,9 +74,7 @@ class _MapsWidgetState extends State<MapsWidget> {
   Widget _buildOverlay(MapOverlay overlay) {
     return CustomPaint(
       painter: OverlayPainter(
-        offsetX: _offsetX,
-        offsetY: _offsetY,
-        zoom: _zoom,
+        position: MapPosition(_offsetX, _offsetY, _zoom),
         overlay: overlay
       ),
     );
@@ -295,51 +219,18 @@ class MapPainter extends CustomPainter {
 }
 
 class OverlayPainter extends CustomPainter {
-  static final _markerPaint = Paint()
-    ..style = PaintingStyle.fill
-    ..color = Colors.red;
-
-  static final _polylinePaint = Paint()
-    ..style = PaintingStyle.stroke
-    ..color = Colors.green
-    ..strokeWidth = 2.0;
-
-  final double offsetX;
-  final double offsetY;
-  final double zoom;
+  final MapPosition position;
   final MapOverlay overlay;
 
-  OverlayPainter({this.offsetX, this.offsetY, this.zoom, this.overlay});
+  OverlayPainter({this.position, this.overlay});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    overlay.paint(canvas, size, this.position);
+  }
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) {
     return true;
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (final marker in overlay.markers) {
-      _paintMarker(canvas, size, marker);
-    }
-    for (final polyline in overlay.polylines) {
-      _paintPolyline(canvas, size, polyline);
-    }
-  }
-
-  void _paintMarker(Canvas canvas, Size size, MapMarker marker) {
-    final p = _geo2screen(marker.location, offsetX, offsetY, zoom, size);
-    _markerPaint.color = marker.color ?? Colors.red;
-    canvas.drawOval(Rect.fromCircle(
-      center: p,
-      radius: 4.0
-    ), _markerPaint);
-  }
-
-  void _paintPolyline(Canvas canvas, Size size, MapPolyline polyline) {
-    final points = polyline
-      .points
-      .map((p) => _geo2screen(p, offsetX, offsetY, zoom, size))
-      .toList();
-    canvas.drawPoints(PointMode.polygon, points, _polylinePaint);
   }
 }

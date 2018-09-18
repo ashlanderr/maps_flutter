@@ -28,9 +28,9 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       body: MapsWidget(
         overlays: [
-          MapOverlay(
+          PolylinesOverlay(
             polylines: [
-              MapPolyline(
+              Polyline(
                 points: [
                   GeoPoint(55.766947, 37.538006),
                   GeoPoint(55.791650, 37.574058),
@@ -38,12 +38,12 @@ class _HomePageState extends State<HomePage> {
               ),
             ],
           ),
-          MapOverlay(
+          MarkersOverlay(
             markers: [
-              MapMarker(
+              Marker(
                 location: GeoPoint(55.766947, 37.538006),
               ),
-              MapMarker(
+              Marker(
                 location: GeoPoint(55.791650, 37.574058),
               ),
             ],
