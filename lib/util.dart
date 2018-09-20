@@ -41,12 +41,21 @@ double lat2tile(lat) {
   return (1 - (log(tan(r) + (1 / cos(r))) / pi)) / 2;
 }
 
+Offset tile2screen(Offset point, MapPosition pos, Size size) {
+  final x = size.width / 2.0 - ((pos.offsetX - point.dx) * pos.zoom * TILE_SIZE);
+  final y = size.height / 2.0 - ((pos.offsetY - point.dy) * pos.zoom * TILE_SIZE);
+  return Offset(x, y);
+}
+
+Offset screen2tile(Offset point, MapPosition pos, Size size) {
+  final x = (point.dx - size.width / 2.0) / (TILE_SIZE * pos.zoom) + pos.offsetX;
+  final y = (point.dy - size.height / 2.0) / (TILE_SIZE * pos.zoom) + pos.offsetY;
+  return Offset(x, y);
+}
+
 Offset geo2screen(GeoPoint point, MapPosition pos, Size size) {
   final y = lat2tile(point.latitude);
   final x = lng2tile(point.longitude);
 
-  final cx = size.width / 2.0 - ((pos.offsetX - x) * pos.zoom * TILE_SIZE);
-  final cy = size.height / 2.0 - ((pos.offsetY - y) * pos.zoom * TILE_SIZE);
-
-  return Offset(cx, cy);
+  return tile2screen(Offset(x, y), pos, size);
 }

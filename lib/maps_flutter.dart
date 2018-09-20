@@ -37,9 +37,8 @@ class MapsWidgetState extends State<MapsWidget> {
   final Set<TileId> _loading = Set();
   MapsController _controller;
 
-  double _tempZoom;
-  double _tempFocalX;
-  double _tempFocalY;
+  double _tempScale;
+  Offset _tempFocal;
 
   @override
   void initState() {
@@ -116,28 +115,42 @@ class MapsWidgetState extends State<MapsWidget> {
   }
 
   void _scaleStart(ScaleStartDetails event) {
-    _tempZoom = _controller.zoom;
-    _tempFocalX = event.focalPoint.dx;
-    _tempFocalY = event.focalPoint.dy;
+    _tempScale = 1.0;
+    _tempFocal = event.focalPoint;
   }
 
   void _scaleEnd(ScaleEndDetails event) {
-    _tempZoom = null;
-    _tempFocalX = null;
-    _tempFocalY = null;
+    _tempScale = null;
+    _tempFocal = null;
   }
 
   void _scaleUpdate(ScaleUpdateDetails event) {
-    setState(() {
-      final zoom = _tempZoom * event.scale;
-      final dx = (_tempFocalX - event.focalPoint.dx) * 0.003 / _controller.zoom;
-      final dy = (_tempFocalY - event.focalPoint.dy) * 0.003 / _controller.zoom;
-      _controller.zoom = zoom;
-      _controller.offsetX += dx;
-      _controller.offsetY += dy;
-      _tempFocalX = event.focalPoint.dx;
-      _tempFocalY = event.focalPoint.dy;
-    });
+    // some crazy math here
+
+    final deltaScale = event.scale / _tempScale;
+    final deltaFocal = event.focalPoint - _tempFocal;
+    _tempScale = event.scale;
+    _tempFocal = event.focalPoint;
+
+    final loc = screen2tile(event.focalPoint, _controller.position, context.size);
+
+    final oldZoom = _controller.zoom;
+    final newZoom = oldZoom * deltaScale;
+
+    final cx = _controller.offsetX;
+    final cy = _controller.offsetY;
+
+    // compute new center tile position, so the focal point stays in the same tile coordinates
+    final x = (loc.dx * (newZoom - oldZoom) + cx * oldZoom) / newZoom;
+    final y = (loc.dy * (newZoom - oldZoom) + cy * oldZoom) / newZoom;
+
+    // compute center tile position shift due to the focal point dragging
+    final dx = deltaFocal.dx / (TILE_SIZE * oldZoom);
+    final dy = deltaFocal.dy / (TILE_SIZE * newZoom);
+
+    _controller.zoom = newZoom;
+    _controller.offsetX = x - dx;
+    _controller.offsetY = y - dy;
   }
 }
 
