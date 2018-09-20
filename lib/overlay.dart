@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart' hide Image;
@@ -20,30 +21,50 @@ class CircleMarker implements Marker {
     ..color = Colors.red;
 
   GeoPoint _location;
-  Color _color;
-  double _radius;
+  Color _innerColor;
+  double _innerRadius;
+  Color _outerColor;
+  double _outerRadius;
+  double _fullSize;
 
   GeoPoint get location => _location;
-  Size get size => Size(_radius * 2, _radius * 2);
+  Size get size => Size(_fullSize, _fullSize);
 
   CircleMarker({
     GeoPoint location,
-    Color color = Colors.red,
-    double radius = 4.0
+    Color innerColor,
+    double innerRadius,
+    Color outerColor,
+    double outerRadius,
   }) {
     _location = location;
-    _color = color;
-    _radius = radius;
+    _innerColor = innerColor;
+    _innerRadius = innerRadius;
+    _outerColor = outerColor;
+    _outerRadius = outerRadius;
+
+    _fullSize = max(innerRadius ?? 0, outerRadius ?? 0) * 2;
   }
 
   @override
   void paint(Canvas canvas, Offset position) {
-    _markerPaint.color = _color;
+    if (_outerColor != null && _outerRadius != null) {
+      _markerPaint.color = _outerColor;
 
-    canvas.drawOval(Rect.fromCircle(
-      center: position,
-      radius: _radius,
-    ), _markerPaint);
+      canvas.drawOval(Rect.fromCircle(
+        center: position,
+        radius: _outerRadius,
+      ), _markerPaint);
+    }
+
+    if (_innerColor != null && _innerRadius != null) {
+      _markerPaint.color = _innerColor;
+
+      canvas.drawOval(Rect.fromCircle(
+        center: position,
+        radius: _innerRadius,
+      ), _markerPaint);
+    }
   }
 }
 
@@ -118,13 +139,17 @@ class MarkersOverlay implements MapOverlay {
 
 class Polyline {
   final List<GeoPoint> points;
-  final Color color;
-  final double width;
+  final Color innerColor;
+  final double innerWidth;
+  final Color outerColor;
+  final double outerWidth;
 
   Polyline({
     this.points,
-    this.color = Colors.red,
-    this.width = 2.0,
+    this.innerColor,
+    this.innerWidth,
+    this.outerColor,
+    this.outerWidth,
   });
 }
 
@@ -153,9 +178,16 @@ class PolylinesOverlay implements MapOverlay {
       .map((p) => geo2screen(p, pos, size))
       .toList();
 
-    _polylinePaint.color = polyline.color;
-    _polylinePaint.strokeWidth = polyline.width;
+    if (polyline.outerColor != null && polyline.outerWidth != null) {
+      _polylinePaint.color = polyline.outerColor;
+      _polylinePaint.strokeWidth = polyline.outerWidth;
+      canvas.drawPoints(PointMode.polygon, points, _polylinePaint);
+    }
 
-    canvas.drawPoints(PointMode.polygon, points, _polylinePaint);
+    if (polyline.innerColor != null && polyline.innerWidth != null) {
+      _polylinePaint.color = polyline.innerColor;
+      _polylinePaint.strokeWidth = polyline.innerWidth;
+      canvas.drawPoints(PointMode.polygon, points, _polylinePaint);
+    }
   }
 }

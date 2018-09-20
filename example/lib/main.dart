@@ -35,6 +35,10 @@ class _HomePageState extends State<HomePage> {
           PolylinesOverlay(
             polylines: [
               Polyline(
+                innerColor: Colors.blue,
+                innerWidth: 6.0,
+                outerColor: Colors.white,
+                outerWidth: 10.0,
                 points: [
                   GeoPoint(55.766947, 37.538006),
                   GeoPoint(55.791650, 37.574058),
@@ -45,9 +49,15 @@ class _HomePageState extends State<HomePage> {
           MarkersOverlay(
             markers: [
               CircleMarker(
+                innerRadius: 8.0,
+                innerColor: Colors.red,
+                outerRadius: 10.0,
+                outerColor: Colors.white,
                 location: GeoPoint(55.766947, 37.538006),
               ),
               CircleMarker(
+                innerRadius: 12.0,
+                innerColor: Colors.green,
                 location: GeoPoint(55.791650, 37.574058),
               ),
               ImageMarker(
