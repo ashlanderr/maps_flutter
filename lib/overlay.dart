@@ -7,23 +7,47 @@ abstract class MapOverlay {
   void paint(Canvas canvas, Size size, MapPosition pos);
 }
 
-class Marker {
-  final GeoPoint location;
-  final Color color;
-  final double size;
+abstract class Marker {
+  GeoPoint get location;
+  Size get size;
 
-  Marker({
-    this.location,
-    this.color = Colors.red,
-    this.size = 4.0
-  });
+  void paint(Canvas canvas, Offset position);
 }
 
-class MarkersOverlay implements MapOverlay {
+class CircleMarker implements Marker {
   static final _markerPaint = Paint()
     ..style = PaintingStyle.fill
     ..color = Colors.red;
 
+  GeoPoint _location;
+  Color _color;
+  double _radius;
+
+  GeoPoint get location => _location;
+  Size get size => Size(_radius * 2, _radius * 2);
+
+  CircleMarker({
+    GeoPoint location,
+    Color color = Colors.red,
+    double radius = 4.0
+  }) {
+    _location = location;
+    _color = color;
+    _radius = radius;
+  }
+
+  @override
+  void paint(Canvas canvas, Offset position) {
+    _markerPaint.color = _color;
+
+    canvas.drawOval(Rect.fromCircle(
+      center: position,
+      radius: _radius,
+    ), _markerPaint);
+  }
+}
+
+class MarkersOverlay implements MapOverlay {
   final List<Marker> markers;
 
   MarkersOverlay({this.markers});
@@ -37,13 +61,7 @@ class MarkersOverlay implements MapOverlay {
 
   void _paintMarker(Canvas canvas, Size size, MapPosition pos, Marker marker) {
     final p = geo2screen(marker.location, pos, size);
-
-    _markerPaint.color = marker.color ?? Colors.red;
-
-    canvas.drawOval(Rect.fromCircle(
-      center: p,
-      radius: marker.size,
-    ), _markerPaint);
+    marker.paint(canvas, p);
   }
 }
 

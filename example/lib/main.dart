@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:maps_flutter/maps_flutter.dart';
 
 void main() => runApp(new MyApp());
@@ -40,10 +39,10 @@ class _HomePageState extends State<HomePage> {
           ),
           MarkersOverlay(
             markers: [
-              Marker(
+              CircleMarker(
                 location: GeoPoint(55.766947, 37.538006),
               ),
-              Marker(
+              CircleMarker(
                 location: GeoPoint(55.791650, 37.574058),
               ),
             ],
