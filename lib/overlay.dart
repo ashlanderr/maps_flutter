@@ -10,8 +10,13 @@ abstract class MapOverlay {
 class Marker {
   final GeoPoint location;
   final Color color;
+  final double size;
 
-  Marker({this.location, this.color});
+  Marker({
+    this.location,
+    this.color = Colors.red,
+    this.size = 4.0
+  });
 }
 
 class MarkersOverlay implements MapOverlay {
@@ -32,24 +37,34 @@ class MarkersOverlay implements MapOverlay {
 
   void _paintMarker(Canvas canvas, Size size, MapPosition pos, Marker marker) {
     final p = geo2screen(marker.location, pos, size);
+
     _markerPaint.color = marker.color ?? Colors.red;
+
     canvas.drawOval(Rect.fromCircle(
       center: p,
-      radius: 4.0
+      radius: marker.size,
     ), _markerPaint);
   }
 }
 
 class Polyline {
   final List<GeoPoint> points;
+  final Color color;
+  final double width;
 
-  Polyline({this.points});
+  Polyline({
+    this.points,
+    this.color = Colors.red,
+    this.width = 2.0,
+  });
 }
 
 class PolylinesOverlay implements MapOverlay {
   static final _polylinePaint = Paint()
     ..style = PaintingStyle.stroke
     ..color = Colors.green
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round
     ..strokeWidth = 2.0;
 
   final List<Polyline> polylines;
@@ -68,6 +83,10 @@ class PolylinesOverlay implements MapOverlay {
       .points
       .map((p) => geo2screen(p, pos, size))
       .toList();
+
+    _polylinePaint.color = polyline.color;
+    _polylinePaint.strokeWidth = polyline.width;
+
     canvas.drawPoints(PointMode.polygon, points, _polylinePaint);
   }
 }
