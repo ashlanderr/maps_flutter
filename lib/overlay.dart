@@ -31,12 +31,16 @@ class CircleMarker implements Marker {
   Size get size => Size(_fullSize, _fullSize);
 
   CircleMarker({
-    GeoPoint location,
+    @required GeoPoint location,
     Color innerColor,
     double innerRadius,
     Color outerColor,
     double outerRadius,
   }) {
+    assert(location != null);
+    assert(innerRadius == null || innerRadius >= 0.0);
+    assert(outerRadius == null || outerRadius >= 0.0);
+
     _location = location;
     _innerColor = innerColor;
     _innerRadius = innerRadius;
@@ -83,17 +87,19 @@ class ImageMarker implements Marker {
   Size get size => _size;
 
   ImageMarker({
-    GeoPoint location,
-    Image image,
-    Offset anchor = const Offset(0.5, 1.0),
-    Color color = Colors.red,
-    Size size = const Size(24.0, 24.0)
+    @required GeoPoint location,
+    @required Image image,
+    Offset anchor,
+    Color color,
+    Size size
   }) {
+    assert(location != null);
+
     _location = location;
     _image = image;
-    _anchor = anchor;
-    _color = color;
-    _size = size;
+    _anchor = anchor ?? Offset(0.5, 1.0);
+    _color = color ?? Colors.white;
+    _size = size ?? Size(32.0, 32.0);
   }
 
   @override
@@ -122,7 +128,11 @@ class ImageMarker implements Marker {
 class MarkersOverlay implements MapOverlay {
   final List<Marker> markers;
 
-  MarkersOverlay({this.markers});
+  MarkersOverlay({
+    @required this.markers
+  }) {
+    assert(this.markers != null);
+  }
 
   @override
   void paint(Canvas canvas, Size size, MapPosition pos) {
@@ -145,12 +155,16 @@ class Polyline {
   final double outerWidth;
 
   Polyline({
-    this.points,
+    @required this.points,
     this.innerColor,
     this.innerWidth,
     this.outerColor,
     this.outerWidth,
-  });
+  }) {
+    assert(this.points != null);
+    assert(this.innerWidth == null || this.innerWidth >= 0.0);
+    assert(this.outerWidth == null || this.outerWidth >= 0.0);
+  }
 }
 
 class PolylinesOverlay implements MapOverlay {
@@ -163,7 +177,11 @@ class PolylinesOverlay implements MapOverlay {
 
   final List<Polyline> polylines;
 
-  PolylinesOverlay({this.polylines});
+  PolylinesOverlay({
+    @required this.polylines
+  }) {
+    assert(this.polylines != null);
+  }
 
   @override
   void paint(Canvas canvas, Size size, MapPosition pos) {
