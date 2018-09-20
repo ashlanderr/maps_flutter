@@ -5,39 +5,54 @@ import 'dart:ui';
 import 'package:flutter/material.dart' hide Image;
 import 'package:maps_flutter/overlay.dart';
 import 'package:maps_flutter/tiles.dart';
+import 'package:maps_flutter/controller.dart';
 import 'package:maps_flutter/util.dart';
 
 export 'package:maps_flutter/overlay.dart';
 export 'package:maps_flutter/tiles.dart';
+export 'package:maps_flutter/controller.dart';
 export 'package:maps_flutter/util.dart';
 
 class MapsWidget extends StatefulWidget {
   final List<MapOverlay> overlays;
   final TileProvider tileProvider;
+  final MapsController controller;
 
   MapsWidget({
     List<MapOverlay> overlays,
     TileProvider tileProvider,
+    MapsController controller,
   })
     : overlays = overlays ?? [],
-      tileProvider = tileProvider ?? OpenStreetMap();
+      tileProvider = tileProvider ?? OpenStreetMap(),
+      controller = controller;
 
   @override
-  _MapsWidgetState createState() => _MapsWidgetState();
+  MapsWidgetState createState() => MapsWidgetState();
 }
 
-class _MapsWidgetState extends State<MapsWidget> {
+class MapsWidgetState extends State<MapsWidget> {
   // todo cache eviction
   final Map<TileId, Image> _cache = {};
   final Set<TileId> _loading = Set();
-
-  var _zoom = 1.0;
-  var _offsetX = 0.5;
-  var _offsetY = 0.5;
+  MapsController _controller;
 
   double _tempZoom;
   double _tempFocalX;
   double _tempFocalY;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = widget.controller ?? MapsController();
+    _controller.addListener(_stateChanged);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_stateChanged);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,12 +74,14 @@ class _MapsWidgetState extends State<MapsWidget> {
     );
   }
 
+  void _stateChanged() {
+    setState(() {});
+  }
+
   Widget _buildMap() {
     return CustomPaint(
       painter: MapPainter(
-        offsetX: _offsetX,
-        offsetY: _offsetY,
-        zoom: _zoom,
+        position: _controller.position,
         tiles: _cache,
         requestTile: _fetchImage,
       ),
@@ -74,7 +91,7 @@ class _MapsWidgetState extends State<MapsWidget> {
   Widget _buildOverlay(MapOverlay overlay) {
     return CustomPaint(
       painter: OverlayPainter(
-        position: MapPosition(_offsetX, _offsetY, _zoom),
+        position: _controller.position,
         overlay: overlay
       ),
     );
@@ -88,16 +105,18 @@ class _MapsWidgetState extends State<MapsWidget> {
 
       final image = await widget.tileProvider.fetch(id.level, id.x, id.y);
 
-      setState(() {
-        _cache[id] = image;
-      });
+      if (mounted) {
+        setState(() {
+          _cache[id] = image;
+        });
+      }
     } finally {
       _loading.remove(id);
     }
   }
 
   void _scaleStart(ScaleStartDetails event) {
-    _tempZoom = _zoom;
+    _tempZoom = _controller.zoom;
     _tempFocalX = event.focalPoint.dx;
     _tempFocalY = event.focalPoint.dy;
   }
@@ -110,9 +129,12 @@ class _MapsWidgetState extends State<MapsWidget> {
 
   void _scaleUpdate(ScaleUpdateDetails event) {
     setState(() {
-      _zoom = _tempZoom * event.scale;
-      _offsetX += (_tempFocalX - event.focalPoint.dx) * 0.003 / _zoom;
-      _offsetY += (_tempFocalY - event.focalPoint.dy) * 0.003 / _zoom;
+      final zoom = _tempZoom * event.scale;
+      final dx = (_tempFocalX - event.focalPoint.dx) * 0.003 / _controller.zoom;
+      final dy = (_tempFocalY - event.focalPoint.dy) * 0.003 / _controller.zoom;
+      _controller.zoom = zoom;
+      _controller.offsetX += dx;
+      _controller.offsetY += dy;
       _tempFocalX = event.focalPoint.dx;
       _tempFocalY = event.focalPoint.dy;
     });
@@ -150,15 +172,13 @@ class MapPainter extends CustomPainter {
     ..filterQuality = FilterQuality.high
     ..style = PaintingStyle.stroke;
 
-  final double offsetX;
-  final double offsetY;
-  final double zoom;
+  final MapPosition position;
   final Map<TileId, Image> tiles;
   final ValueChanged<TileId> requestTile;
 
   final Map<int, int> metrics = {};
 
-  MapPainter({this.offsetX, this.offsetY, this.zoom, this.tiles, this.requestTile});
+  MapPainter({this.position, this.tiles, this.requestTile});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -170,18 +190,18 @@ class MapPainter extends CustomPainter {
   @override
   bool shouldRepaint(CustomPainter oldDelegate) {
     final old = oldDelegate as MapPainter;
-    return old.offsetX != offsetX || old.offsetY != offsetY || old.zoom != zoom || old.tiles != tiles;
+    return old.position != position || old.tiles != tiles;
   }
 
   void _paintTile(Canvas canvas, Size size, int level, int x, int y) {
     final levelZoom = (1 << level);
-    final tileSize = TILE_SIZE / levelZoom * zoom;
+    final tileSize = TILE_SIZE / levelZoom * position.zoom;
 
     final tx = (x + 0.5) / levelZoom;
     final ty = (y + 0.5) / levelZoom;
 
-    final cx = size.width / 2.0 - ((offsetX - tx) * zoom * TILE_SIZE);
-    final cy = size.height / 2.0 - ((offsetY - ty) * zoom * TILE_SIZE);
+    final cx = size.width / 2.0 - ((position.offsetX - tx) * position.zoom * TILE_SIZE);
+    final cy = size.height / 2.0 - ((position.offsetY - ty) * position.zoom * TILE_SIZE);
 
     final bx = cx - tileSize / 2;
     final by = cy - tileSize / 2;
