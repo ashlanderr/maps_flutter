@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Image;
 import 'package:maps_flutter/util.dart';
 
 abstract class MapOverlay {
@@ -44,6 +44,57 @@ class CircleMarker implements Marker {
       center: position,
       radius: _radius,
     ), _markerPaint);
+  }
+}
+
+class ImageMarker implements Marker {
+  static final _markerPaint = Paint()
+    ..style = PaintingStyle.fill
+    ..color = Colors.red;
+
+  GeoPoint _location;
+  Image _image;
+  Offset _anchor;
+  Color _color;
+  Size _size;
+
+  GeoPoint get location => _location;
+  Size get size => _size;
+
+  ImageMarker({
+    GeoPoint location,
+    Image image,
+    Offset anchor = const Offset(0.5, 1.0),
+    Color color = Colors.red,
+    Size size = const Size(24.0, 24.0)
+  }) {
+    _location = location;
+    _image = image;
+    _anchor = anchor;
+    _color = color;
+    _size = size;
+  }
+
+  @override
+  void paint(Canvas canvas, Offset position) {
+    if (_image == null) return;
+
+    final srcRect = Rect.fromLTWH(
+      0.0,
+      0.0,
+      _image.width.toDouble(),
+      _image.height.toDouble()
+    );
+
+    final destRect = Rect.fromLTWH(
+      position.dx - _anchor.dx * _size.width,
+      position.dy - _anchor.dy * _size.height,
+      _size.width,
+      _size.height
+    );
+
+    _markerPaint.color = _color;
+    canvas.drawImageRect(_image, srcRect, destRect, _markerPaint);
   }
 }
 

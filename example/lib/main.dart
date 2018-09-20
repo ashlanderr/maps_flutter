@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'dart:ui';
+
+import 'package:flutter/material.dart' hide Image;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:maps_flutter/maps_flutter.dart';
 
 void main() => runApp(new MyApp());
@@ -22,6 +25,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  Image _markerImage;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,10 +50,34 @@ class _HomePageState extends State<HomePage> {
               CircleMarker(
                 location: GeoPoint(55.791650, 37.574058),
               ),
+              ImageMarker(
+                location: GeoPoint(55.766947, 37.558006),
+                image: _markerImage,
+                size: Size(32.0, 32.0),
+              )
             ],
           ),
         ],
       ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadImage();
+  }
+
+  void _loadImage() async {
+    try {
+      final data = await rootBundle.load("assets/map-marker-icon.png");
+      final codec = await instantiateImageCodec(data.buffer.asUint8List());
+      final frame = await codec.getNextFrame();
+      setState(() {
+        _markerImage = frame.image;
+      });
+    } catch (ex) {
+      print(ex);
+    }
   }
 }
