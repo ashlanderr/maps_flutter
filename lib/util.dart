@@ -16,6 +16,11 @@ class MapPosition {
   final double zoom;
 
   MapPosition(this.offsetX, this.offsetY, this.zoom);
+
+  @override
+  String toString() {
+    return 'MapPosition{offsetX: $offsetX, offsetY: $offsetY, zoom: $zoom}';
+  }
 }
 
 double tile2lng(x) {
